@@ -1,5 +1,6 @@
 import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
-import * as BABYLON from 'babylonjs';
+// import * as BABYLON from 'babylonjs';
+import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, Mesh } from "babylonjs";
 import { BasicParam, FacePostion } from './config';
 import { PlinkoService } from './../plinko.service';
 @Component({
@@ -22,15 +23,14 @@ export class GameComponent implements OnInit {
   diceIsReached: boolean[];
   dicePath: any[];
   diceNumber: any[];
-  diceRouterInfo: any[];
   planOne: number[];
   planAll: any[];
-  routerObject = [];
-	routerSkewObject = [];
+  diceRouterInfo: any[]
+
 
   subscription = null;
 
-  tableY =BasicParam.offsetY - BasicParam.gridWidth * 2;
+  tableY =BasicParam.offsetY - BasicParam.gridWidth * 7;
 
   constructor(public plinkoService: PlinkoService) {
     this.subscription = this.plinkoService.eventOccured.subscribe(event => {
@@ -60,16 +60,72 @@ export class GameComponent implements OnInit {
     const gravityVector = new BABYLON.Vector3(0, -500, 0);
     const physicsPlugin = new BABYLON.CannonJSPlugin();
     scene.enablePhysics(gravityVector, physicsPlugin);
+    scene.collisionsEnabled = true;
 
     const camera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, 400), scene);
     camera.setTarget(BABYLON.Vector3.Zero());
     camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-    camera.attachControl(this.canvas, true);
+    // camera.attachControl(this.canvas, true);
     const light1 = new BABYLON.HemisphericLight('mainLight1', new BABYLON.Vector3(1500, 2500, 500), scene);
     // const light2 = new BABYLON.HemisphericLight('mainLight1', new BABYLON.Vector3(-1500, 2500, 500), scene);
 
     this.dicePath = [];
     this.diceNumber = [];
+
+
+
+    // dice
+    this.diceMat = new BABYLON.StandardMaterial('diceMat', scene);
+    this.diceMat.opacityTexture = new BABYLON.Texture('assets/diceall.png', scene);
+    this.diceMat.emissiveTexture = new BABYLON.Texture('assets/diceall.png', scene);
+
+    this.diceMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    this.diceMat.specularColor = new BABYLON.Color3(0, 0, 0);
+
+    const hSpriteNb =  6;
+    const vSpriteNb =  3;
+  
+    this.diceFaceUV = [];
+    for (let d = 0; d < vSpriteNb; d ++) {
+      this.diceFaceUV[d] = [];
+      for (let i = 0; i < 6; i++) {
+        this.diceFaceUV[d][i] = new BABYLON.Vector4( i / hSpriteNb, d / vSpriteNb, (i+1)/hSpriteNb, (d + 1) / vSpriteNb);
+      }
+    }
+    
+    this.diceObject = [];
+    this.diceIsEnable = [];
+    this.diceIsReached = [];
+    for (let i = 0; i < BasicParam.dicesPerScreen; i++) {
+      this.diceIsEnable[i] = true;
+      this.diceObject[i] = BABYLON.MeshBuilder.CreateBox(`dicd${i}`, {
+        size: BasicParam.diceSize,
+        faceUV: this.diceFaceUV[i % 3]
+      }, scene);
+      this.diceObject[i].material = this.diceMat;
+      
+      this.diceObject[i].position = new BABYLON.Vector3(
+        BasicParam.diceSize * (i - BasicParam.dicesPerScreen / 2) * 1.5, 
+        this.tableY + BasicParam.diceSize, 
+        BasicParam.plinkoDepth / 2);
+      this.diceObject[i].physicsImpostor = new BABYLON.PhysicsImpostor(this.diceObject[i], BABYLON.PhysicsImpostor.BoxImpostor, 
+        { 
+          mass: BasicParam.diceMass,
+          restitution: BasicParam.diceRestitution,
+          friction: BasicParam.diceFriction,
+        }, scene);
+    }
+
+
+    const diceTable = BABYLON.MeshBuilder.CreateBox('diceTable', 
+      {
+        width: BasicParam.gridWidth * BasicParam.dicesPerScreen * 2,
+        depth: BasicParam.plinkoDepth   
+      }, scene);
+    diceTable.position.y = this.tableY;
+    diceTable.position.z = BasicParam.plinkoDepth / 2;
+    diceTable.physicsImpostor = new BABYLON.PhysicsImpostor(diceTable, BABYLON.PhysicsImpostor.BoxImpostor, {mass: 0});
+
     //  back
     const backPan = BABYLON.MeshBuilder.CreateBox('backPan', 
       {
@@ -154,8 +210,6 @@ export class GameComponent implements OnInit {
     
     // bottom & bars
     this.holeObject = [];
-    this.routerObject = [];
-    this.routerSkewObject = [];
     for (let i = BasicParam.grids; i > -1; i--) {
       // bottom
       this.holeObject[i] = BABYLON.MeshBuilder.CreateBox('hole' + i, 
@@ -184,12 +238,7 @@ export class GameComponent implements OnInit {
 
 			if (i === 0) break;
 
-      // router
-      
-      this.routerObject[i - 1] = [];
-      this.routerSkewObject[i - 1] = [];
-      const routY = BasicParam.gridWidth * Math.sin(Math.PI / 3) * (BasicParam.grids - i + 1.5) + BasicParam.offsetY;
-
+ 
       // bars
       for (let j = 0; j < i; j++) {
         const bar = BABYLON.MeshBuilder.CreateCylinder(`bar${i}_${j}`, 
@@ -210,56 +259,21 @@ export class GameComponent implements OnInit {
             restitution: 0.2,
             friction: 0.1 
           }, scene);
-        bar.material = borderMat;
+        
+        const barMat = new BABYLON.StandardMaterial('borderMat', scene);
+        barMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+        barMat.specularColor = new BABYLON.Color3(0, 0, 0);
+        barMat.emissiveColor = new BABYLON.Color3(.6, .6, 1);        
+        bar.material = barMat;
 
-
-              // router
-        this.routerObject[i - 1][j] = [];
-        this.routerSkewObject[i - 1][j] = [];
-        for (let k = 0; k < 2; k++) {
-          // router 1
-          this.routerObject[i - 1][j][k] = BABYLON.MeshBuilder.CreateBox(`routerObject${i}_${j}_${k}`, 
-            { 
-              height: BasicParam.diceSize * 2,
-            }, 
-            scene);
-          this.routerObject[i - 1][j][k].material = borderMat;
-            
-          this.routerObject[i - 1][j][k].position = new BABYLON.Vector3(
-            j * BasicParam.gridWidth - BasicParam.gridWidth * i / 2 + BasicParam.gridWidth * (k ? .21 : -.21), 
-            routY + BasicParam.diceSize * 3 / 4, 
-            -100);
-          // this.routerObject[i - 1][j][k].physicsImpostor = new BABYLON.PhysicsImpostor(
-          //   this.routerObject[i - 1][j][k], BABYLON.PhysicsImpostor.BoxImpostor,
-          //     { 
-          //       mass: 0, 
-          //     }, 
-          //     scene);
-          
-          // router 2
-          this.routerSkewObject[i - 1][j][k] = BABYLON.MeshBuilder.CreateBox(`routerSkewObject${i}_${j}_${k}`, 
-            { 
-              height: BasicParam.diceSize,
-              // depth: BasicParam.plinkoDepth * 2
-            }, 
-            scene);
-          this.routerSkewObject[i - 1][j][k].material = borderMat;
-
-
-          this.routerSkewObject[i - 1][j][k].rotation.z = k ? -Math.PI / 6 : Math.PI / 6;
-          this.routerSkewObject[i - 1][j][k].position = new BABYLON.Vector3(
-            j * BasicParam.gridWidth - BasicParam.gridWidth * i / 2 + BasicParam.gridWidth * (k ? .4 : -.4), 
-            routY - BasicParam.diceSize / 2 + 5, 
-            -100);
-          // this.routerSkewObject[i - 1][j][k].physicsImpostor = new BABYLON.PhysicsImpostor(
-          //   this.routerSkewObject[i - 1][j][k], BABYLON.PhysicsImpostor.BoxImpostor, 
-          //   { 
-          //     mass: 0, 
-          //     restitution: 0,
-          //   }, 
-          //   scene);
- 
-          
+        bar.actionManager = new BABYLON.ActionManager(scene);
+        
+        const pt = this;
+        for (let d = 0; d < BasicParam.dicesPerScreen; d ++) {
+          bar.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            {trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger, parameter: this.diceObject[d]},
+            pt.onBarCollision
+          ));
         }
       }
       
@@ -283,62 +297,6 @@ export class GameComponent implements OnInit {
             restitution: 0.9 
           }, scene);
     }
-
-    // dice
-    this.diceMat = new BABYLON.StandardMaterial('diceMat', scene);
-    this.diceMat.opacityTexture = new BABYLON.Texture('assets/diceall.png', scene);
-    this.diceMat.emissiveTexture = new BABYLON.Texture('assets/diceall.png', scene);
-
-    this.diceMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
-    this.diceMat.specularColor = new BABYLON.Color3(0, 0, 0);
-    // this.diceMat.emissiveColor = new BABYLON.Color3(.1, .1, .5);
-
-  // diceMat.emissiveColor
-    const hSpriteNb =  6;
-    const vSpriteNb =  3;
-  
-    this.diceFaceUV = [];
-    for (let d = 0; d < vSpriteNb; d ++) {
-      this.diceFaceUV[d] = [];
-      for (let i = 0; i < 6; i++) {
-        this.diceFaceUV[d][i] = new BABYLON.Vector4( i / hSpriteNb, d / vSpriteNb, (i+1)/hSpriteNb, (d + 1) / vSpriteNb);
-      }
-    }
-
-    
-
-    this.diceObject = [];
-    this.diceIsEnable = [];
-    this.diceIsReached = [];
-    for (let i = 0; i < BasicParam.dicesPerScreen; i++) {
-      this.diceIsEnable[i] = true;
-      this.diceObject[i] = BABYLON.MeshBuilder.CreateBox(`dicd${i}`, {
-        size: BasicParam.diceSize,
-        faceUV: this.diceFaceUV[i % 3]
-      }, scene);
-      this.diceObject[i].material = this.diceMat;
-      
-      this.diceObject[i].position = new BABYLON.Vector3(
-        BasicParam.diceSize * (i - BasicParam.dicesPerScreen / 2) * 1.5, 
-        this.tableY + BasicParam.diceSize, 
-        BasicParam.plinkoDepth / 2);
-      this.diceObject[i].physicsImpostor = new BABYLON.PhysicsImpostor(this.diceObject[i], BABYLON.PhysicsImpostor.BoxImpostor, 
-        { 
-          mass: BasicParam.diceMass,
-          restitution: BasicParam.diceRestitution,
-          friction: BasicParam.diceFriction,
-        }, scene);
-    }
-
-
-    const diceTable = BABYLON.MeshBuilder.CreateBox('diceTable', 
-      {
-        width: BasicParam.gridWidth * BasicParam.dicesPerScreen * 2,
-        depth: BasicParam.plinkoDepth   
-      }, scene);
-    diceTable.position.y = this.tableY;
-    diceTable.position.z = BasicParam.plinkoDepth / 2;
-    diceTable.physicsImpostor = new BABYLON.PhysicsImpostor(diceTable, BABYLON.PhysicsImpostor.BoxImpostor, {mass: 0});
 
 
  
@@ -409,7 +367,7 @@ export class GameComponent implements OnInit {
       const v2d = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
       const velocityAngular = this.diceObject[d].physicsImpostor.getAngularVelocity();
 
-      if (v2d > 110) {
+      if (v2d > 120) {
         const vY = velocity.y * 0.05
         const vX = velocity.x * 0.5
         this.diceObject[d].physicsImpostor.setLinearVelocity(new BABYLON.Vector3
@@ -419,8 +377,8 @@ export class GameComponent implements OnInit {
             0
           ));
       }
-      if (Math.abs(velocity.y) < .0005) {
-        if (this.diceObject[d].position.y <= BasicParam.diceSize / 2 + BasicParam.barWidth) {
+      if (Math.abs(velocity.y) < .001) {
+        if (this.diceObject[d].position.y - BasicParam.offsetY <= BasicParam.diceSize) {
           const targetHoleNumber = this.dicePath[d][BasicParam.grids];
           console.log('result');
           console.log(this.diceNumber[d] + 1, targetHoleNumber);
@@ -465,6 +423,14 @@ export class GameComponent implements OnInit {
         }
 
         const rDis = Math.abs(this.diceObject[d].position.y - BasicParam.offsetY - BasicParam.diceSize * 2);
+        if (rDis < 3) {
+          this.diceObject[d].physicsImpostor.setAngularVelocity(new BABYLON.Vector3
+            (
+              0,
+              0,
+              0
+            ));
+        }
         const rqA = Math.abs(v2d) / 
           (rDis * rDis);
         this.diceObject[d].rotationQuaternion = new BABYLON.Quaternion
@@ -482,8 +448,7 @@ export class GameComponent implements OnInit {
         const r  = this.diceObject[d].position.y - BasicParam.offsetY + offsetY2 < unitH * (BasicParam.grids - i + 1) 
                 && this.diceObject[d].position.y - BasicParam.offsetY + offsetY2 > unitH * (BasicParam.grids - i)  ;
         if (r) {
-
-          
+        
 
           // pulse
           const disOld = (i == 0) ? null : (this.dicePath[d][i] - this.dicePath[d][i - 1]);
@@ -508,14 +473,6 @@ export class GameComponent implements OnInit {
             );
             
           } else {
-            // if ((velocity.x > 0 && k) || (velocity.x < 0 && !k)) {
-            //   this.diceObject[d].physicsImpostor.setLinearVelocity(new BABYLON.Vector3
-            //     (
-            //       -velocity.x * 0.5,
-            //       velocity.y,
-            //       20
-            //     ));
-            // }  
             const vAng = Math.atan(Math.abs(velocity.y / (velocity.x ? velocity.x : 0.001)));
             const dAngV = (vAng - Math.PI / 3);
             if (dAngV > 0) {
@@ -531,29 +488,21 @@ export class GameComponent implements OnInit {
           }
         }
 
-        // const oz = this.routerObject[i][j][k].position.z;
-        // const sz = this.routerSkewObject[i][j][k].position.z;
-        // if (r) {
-        //   this.routerObject[i][j][k].position.z = v ? d : (oz === d ? -100 : oz);
-        //   this.routerSkewObject[i][j][k].position.z = v ? (sz === d ? -BasicParam.plinkoDepth * 4 : sz) : d;
-        //  } else {
-        //   this.routerObject[i][j][k].position.z = (oz === d ? -100 : oz);
-        //   this.routerSkewObject[i][j][k].position.z = (sz === d ? -BasicParam.plinkoDepth * 4 : sz);
-        // }
       }
 		}
   }
 
+  onBarCollision(event) {
+    const obj = event.source;
+    obj.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
+    setTimeout(()=> {
+      obj.material.emissiveColor = new BABYLON.Color3(.6, .6, 1);     
+    }, 1000);
+  }
+
   makeRoute() {
     this.diceRouterInfo = [];
-    for (let i = 0; i < BasicParam.grids; i++) {
-      for (let j = 0; j < i + 1; j++) {
-        for (let k = 0; k < 2; k++) {
-          this.routerObject[i][j][k].position.z = -BasicParam.plinkoDepth * 4;
-          this.routerSkewObject[i][j][k].position.z = -BasicParam.plinkoDepth * 4;
-        }
-      }
-    }
+
     for (let l = 0; l < BasicParam.dicesPerScreen; l++) {
       let fk = null;
       this.diceRouterInfo[l] = [];

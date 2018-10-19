@@ -28,17 +28,8 @@ export class PlinkoService {
       this.isReady = false;
       setTimeout (() => {
         this.isReady = true;
-        // this.fallDice();
+        this.fallDice();
       }, BasicParam.eventDelay);
     }
   }
 }
-// const dd = 3 //Math.floor(d / 4) % 6;
-// const ddd = d % 4
-// this.diceObject[d].rotationQuaternion = new BABYLON.Quaternion
-// (
-//   FacePostion[dd][ddd].x, 
-//   FacePostion[dd][ddd].y, 
-//   FacePostion[dd][ddd].z, 
-//   FacePostion[dd][ddd].w
-// );
