@@ -1,13 +1,15 @@
 import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
-// import * as BABYLON from 'babylonjs';
-import { Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, MeshBuilder, Mesh } from "babylonjs";
+import * as BABYLON from 'babylonjs';
 import { BasicParam, FacePostion } from './config';
 import { PlinkoService } from './../plinko.service';
+
+var pt = null;
 @Component({
   selector: 'app-game',
   templateUrl: './game.component.html',
   styleUrls: ['./game.component.css']
 })
+
 export class GameComponent implements OnInit {
 
   canvas: any;
@@ -25,7 +27,9 @@ export class GameComponent implements OnInit {
   diceNumber: any[];
   planOne: number[];
   planAll: any[];
-  diceRouterInfo: any[]
+  diceRouterInfo: any[];
+
+
 
 
   subscription = null;
@@ -33,6 +37,7 @@ export class GameComponent implements OnInit {
   tableY =BasicParam.offsetY - BasicParam.gridWidth * 7;
 
   constructor(public plinkoService: PlinkoService) {
+    pt = this;
     this.subscription = this.plinkoService.eventOccured.subscribe(event => {
       this.fallDice();
     });
@@ -62,7 +67,7 @@ export class GameComponent implements OnInit {
     scene.enablePhysics(gravityVector, physicsPlugin);
     scene.collisionsEnabled = true;
 
-    const camera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, 400), scene);
+    const camera = new BABYLON.UniversalCamera('UniversalCamera', new BABYLON.Vector3(0, 0, BasicParam.plinkoDepth * 2), scene);
     camera.setTarget(BABYLON.Vector3.Zero());
     camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
     // camera.attachControl(this.canvas, true);
@@ -155,6 +160,8 @@ export class GameComponent implements OnInit {
     borderMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
     borderMat.specularColor = new BABYLON.Color3(0, 0, 0);
     borderMat.emissiveColor = new BABYLON.Color3(.6, .6, 1);
+    borderMat.alpha = 0.0;
+
 
 
 
@@ -215,12 +222,12 @@ export class GameComponent implements OnInit {
       this.holeObject[i] = BABYLON.MeshBuilder.CreateBox('hole' + i, 
       {
         width: BasicParam.gridWidth, 
-        height: BasicParam.barWidth / 2,
+        height: BasicParam.barWidth,
         depth: BasicParam.plinkoDepth
       }, scene);
       this.holeObject[i].position = new BABYLON.Vector3(
         BasicParam.gridWidth * i - (BasicParam.grids / 2) * BasicParam.gridWidth - BasicParam.gridWidth * .5, 
-        BasicParam.offsetY, 
+        BasicParam.offsetY - BasicParam.barWidth / 2, 
         BasicParam.plinkoDepth / 2);
       this.holeObject[i].physicsImpostor = new BABYLON.PhysicsImpostor(
         this.holeObject[i], BABYLON.PhysicsImpostor.BoxImpostor, 
@@ -241,6 +248,7 @@ export class GameComponent implements OnInit {
  
       // bars
       for (let j = 0; j < i; j++) {
+
         const bar = BABYLON.MeshBuilder.CreateCylinder(`bar${i}_${j}`, 
           { diameterTop: (j % 2 || i === BasicParam.grids) ? BasicParam.barWidth : 0, 
             diameterBottom: (j % 2 && i !== BasicParam.grids) ? 0 : BasicParam.barWidth, 
@@ -260,15 +268,14 @@ export class GameComponent implements OnInit {
             friction: 0.1 
           }, scene);
         
-        const barMat = new BABYLON.StandardMaterial('borderMat', scene);
+        const barMat = new BABYLON.StandardMaterial('barMat', scene);
         barMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
         barMat.specularColor = new BABYLON.Color3(0, 0, 0);
         barMat.emissiveColor = new BABYLON.Color3(.6, .6, 1);        
         bar.material = barMat;
-
         bar.actionManager = new BABYLON.ActionManager(scene);
+
         
-        const pt = this;
         for (let d = 0; d < BasicParam.dicesPerScreen; d ++) {
           bar.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
             {trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger, parameter: this.diceObject[d]},
@@ -294,13 +301,30 @@ export class GameComponent implements OnInit {
           BABYLON.PhysicsImpostor.BoxImpostor, 
           { 
             mass: 0, 
-            restitution: 0.9 
+            restitution: 0.9,
+            friction: 0
           }, scene);
     }
+    
 
+    // front
+    // const triangleMat = new BABYLON.StandardMaterial('borderMat', scene);
+    // triangleMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    // triangleMat.specularColor = new BABYLON.Color3(0, 0, 0);
+    // triangleMat.emissiveColor = new BABYLON.Color3(.6, .6, 1);
 
- 
+    const myLine = [[
+      new BABYLON.Vector3(-BasicParam.gridWidth / 2, Math.sin(Math.PI / 3) * BasicParam.gridWidth * (BasicParam.grids + 2) + BasicParam.offsetY, 400),
+      new BABYLON.Vector3(-BasicParam.gridWidth * (BasicParam.grids / 2 + 1) - Math.sin(Math.PI / 6) * BasicParam.gridWidth , BasicParam.offsetY, 400),
+      new BABYLON.Vector3(BasicParam.gridWidth * BasicParam.grids / 2 + Math.sin(Math.PI / 6) * BasicParam.gridWidth, BasicParam.offsetY, 400),
+      new BABYLON.Vector3(-BasicParam.gridWidth / 2, Math.sin(Math.PI / 3) * BasicParam.gridWidth * (BasicParam.grids + 2) + BasicParam.offsetY, 400)
+    ]];
+    // const triangle = BABYLON.MeshBuilder.CreateTube("tube", {path: myLine, radius: 20, tessellation: 9, updatable: false}, scene);
+    // triangle.material = triangleMat;
 
+    const linesystem = BABYLON.MeshBuilder.CreateLineSystem("linesystem", {lines: myLine, updatable: true}, scene); 
+    linesystem.color = new BABYLON.Color3(.6, .6, 1);
+  
 
     return scene;
   }
@@ -423,12 +447,18 @@ export class GameComponent implements OnInit {
         }
 
         const rDis = Math.abs(this.diceObject[d].position.y - BasicParam.offsetY - BasicParam.diceSize * 2);
-        if (rDis < 3) {
+        if (rDis < 4) {
           this.diceObject[d].physicsImpostor.setAngularVelocity(new BABYLON.Vector3
             (
               0,
               0,
               0
+            ));
+          this.diceObject[d].physicsImpostor.setLinearVelocity(new BABYLON.Vector3
+            (
+              velocity.x / 2,
+              velocity.y,
+              velocity.z / 2
             ));
         }
         const rqA = Math.abs(v2d) / 
@@ -495,6 +525,7 @@ export class GameComponent implements OnInit {
   onBarCollision(event) {
     const obj = event.source;
     obj.material.emissiveColor = new BABYLON.Color3(1, 1, 1);
+    
     setTimeout(()=> {
       obj.material.emissiveColor = new BABYLON.Color3(.6, .6, 1);     
     }, 1000);
