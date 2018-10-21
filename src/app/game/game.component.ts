@@ -71,7 +71,7 @@ export class GameComponent implements OnInit {
     camera.setTarget(BABYLON.Vector3.Zero());
     camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
     // camera.attachControl(this.canvas, true);
-    const light1 = new BABYLON.HemisphericLight('mainLight1', new BABYLON.Vector3(1500, 2500, 500), scene);
+    const light1 = new BABYLON.HemisphericLight('mainLight1', new BABYLON.Vector3(0, 2500, 500), scene);
     // const light2 = new BABYLON.HemisphericLight('mainLight1', new BABYLON.Vector3(-1500, 2500, 500), scene);
 
     this.dicePath = [];
@@ -81,10 +81,8 @@ export class GameComponent implements OnInit {
 
     // dice
     this.diceMat = new BABYLON.StandardMaterial('diceMat', scene);
-    this.diceMat.opacityTexture = new BABYLON.Texture('assets/diceall.png', scene);
-    this.diceMat.emissiveTexture = new BABYLON.Texture('assets/diceall.png', scene);
-
-    this.diceMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    this.diceMat.opacityTexture = new BABYLON.Texture('assets/img/dice-sprite.png', scene);
+    this.diceMat.diffuseTexture = new BABYLON.Texture('assets/img/dice-sprite.png', scene);
     this.diceMat.specularColor = new BABYLON.Color3(0, 0, 0);
 
     const hSpriteNb =  6;
@@ -140,9 +138,13 @@ export class GameComponent implements OnInit {
       backPan.position = new BABYLON.Vector3(0, 0, 0)
 
     const backMat = new BABYLON.StandardMaterial('backMat', scene);
+
     backMat.diffuseColor = new BABYLON.Color3(0, 0, 0);
     backMat.specularColor = new BABYLON.Color3(0, 0, 0);
-    backMat.emissiveColor = new BABYLON.Color3(.05, .05, .4);
+    backMat.diffuseColor = new BABYLON.Color3(0, 0 , 0);
+    backMat.emissiveTexture = new BABYLON.Texture('assets/img/back.png', scene);
+
+    backMat.specularColor = new BABYLON.Color3(0, 0, 0);
     
     backPan.material = backMat;
 
@@ -188,11 +190,10 @@ export class GameComponent implements OnInit {
     const rightPan = BABYLON.MeshBuilder.CreateBox('rightPan', 
       {
         width: BasicParam.gridWidth * (BasicParam.grids + 2),
-        height: BasicParam.barWidth / 2,
         depth: BasicParam.plinkoDepth
       }, scene);
     rightPan.position = new BABYLON.Vector3(
-        -BasicParam.gridWidth * Math.sin(Math.PI / 3) * (BasicParam.grids / 3 + 0.5), 
+        -BasicParam.gridWidth * Math.sin(Math.PI / 3) * (BasicParam.grids / 3), 
         BasicParam.offsetY + BasicParam.gridWidth * (BasicParam.grids + 2) / 2 * Math.sin(Math.PI / 3), 
         BasicParam.plinkoDepth / 2);
     rightPan.material = borderMat;
@@ -203,11 +204,10 @@ export class GameComponent implements OnInit {
     const leftPan = BABYLON.MeshBuilder.CreateBox('leftPan', 
       {
         width: BasicParam.gridWidth * (BasicParam.grids + 2),
-        height: BasicParam.barWidth / 2,
         depth: BasicParam.plinkoDepth
       }, scene);
       leftPan.position = new BABYLON.Vector3(
-        BasicParam.gridWidth * Math.sin(Math.PI / 3) * (BasicParam.grids / 3 - 0.5) - BasicParam.barWidth, 
+        BasicParam.gridWidth * Math.sin(Math.PI / 3) * (BasicParam.grids / 3), 
         BasicParam.offsetY + BasicParam.gridWidth * (BasicParam.grids + 2) / 2 * Math.sin(Math.PI / 3), 
         BasicParam.plinkoDepth / 2);
     leftPan.rotation.z = Math.PI * 2 / 3;
@@ -226,7 +226,7 @@ export class GameComponent implements OnInit {
         depth: BasicParam.plinkoDepth
       }, scene);
       this.holeObject[i].position = new BABYLON.Vector3(
-        BasicParam.gridWidth * i - (BasicParam.grids / 2) * BasicParam.gridWidth - BasicParam.gridWidth * .5, 
+        BasicParam.gridWidth * i - (BasicParam.grids / 2) * BasicParam.gridWidth, 
         BasicParam.offsetY - BasicParam.barWidth / 2, 
         BasicParam.plinkoDepth / 2);
       this.holeObject[i].physicsImpostor = new BABYLON.PhysicsImpostor(
@@ -253,12 +253,12 @@ export class GameComponent implements OnInit {
           { diameterTop: (j % 2 || i === BasicParam.grids) ? BasicParam.barWidth : 0, 
             diameterBottom: (j % 2 && i !== BasicParam.grids) ? 0 : BasicParam.barWidth, 
             height: BasicParam.plinkoDepth,
-            tessellation: 6
+            tessellation: 12
           }, 
           scene);
         bar.rotation.x = Math.PI / 2;
         bar.position = new BABYLON.Vector3(
-          j * BasicParam.gridWidth - BasicParam.gridWidth * i / 2, 
+          j * BasicParam.gridWidth - BasicParam.gridWidth * (i - 1) / 2, 
           BasicParam.gridWidth * Math.sin(Math.PI / 3) * (BasicParam.grids - i + 1) + BasicParam.offsetY, 
           BasicParam.plinkoDepth / 2);
         bar.physicsImpostor = new BABYLON.PhysicsImpostor(bar, BABYLON.PhysicsImpostor.CylinderImpostor, 
@@ -293,7 +293,7 @@ export class GameComponent implements OnInit {
 
       shareLine.material = borderMat;
       shareLine.position = new BABYLON.Vector3(
-        (i - BasicParam.grids / 2 - 1) * BasicParam.gridWidth, 
+        (i - BasicParam.grids / 2 - 0.5) * BasicParam.gridWidth, 
         BasicParam.offsetY + BasicParam.gridWidth * Math.sin(Math.PI / 3) / 2, 
         BasicParam.plinkoDepth / 2);
         shareLine.physicsImpostor = new BABYLON.PhysicsImpostor(
@@ -314,10 +314,10 @@ export class GameComponent implements OnInit {
     // triangleMat.emissiveColor = new BABYLON.Color3(.6, .6, 1);
 
     const myLine = [[
-      new BABYLON.Vector3(-BasicParam.gridWidth / 2, Math.sin(Math.PI / 3) * BasicParam.gridWidth * (BasicParam.grids + 2) + BasicParam.offsetY, 400),
-      new BABYLON.Vector3(-BasicParam.gridWidth * (BasicParam.grids / 2 + 1) - Math.sin(Math.PI / 6) * BasicParam.gridWidth , BasicParam.offsetY, 400),
-      new BABYLON.Vector3(BasicParam.gridWidth * BasicParam.grids / 2 + Math.sin(Math.PI / 6) * BasicParam.gridWidth, BasicParam.offsetY, 400),
-      new BABYLON.Vector3(-BasicParam.gridWidth / 2, Math.sin(Math.PI / 3) * BasicParam.gridWidth * (BasicParam.grids + 2) + BasicParam.offsetY, 400)
+      new BABYLON.Vector3(0, Math.sin(Math.PI / 3) * BasicParam.gridWidth * (BasicParam.grids + 2) + BasicParam.offsetY, 400),
+      new BABYLON.Vector3(-BasicParam.gridWidth * (BasicParam.grids / 2 + 0.5) - Math.sin(Math.PI / 6) * BasicParam.gridWidth , BasicParam.offsetY, 400),
+      new BABYLON.Vector3(BasicParam.gridWidth * (BasicParam.grids / 2 + 0.5) + Math.sin(Math.PI / 6) * BasicParam.gridWidth, BasicParam.offsetY, 400),
+      new BABYLON.Vector3(0, Math.sin(Math.PI / 3) * BasicParam.gridWidth * (BasicParam.grids + 2) + BasicParam.offsetY, 400)
     ]];
     // const triangle = BABYLON.MeshBuilder.CreateTube("tube", {path: myLine, radius: 20, tessellation: 9, updatable: false}, scene);
     // triangle.material = triangleMat;
@@ -349,7 +349,7 @@ export class GameComponent implements OnInit {
     for (let i = this.plinkoService.number; i < BasicParam.dicesPerScreen; i += 3) {
       if (this.diceIsEnable[i]) {
         this.diceObject[i].position = new BABYLON.Vector3(
-          -BasicParam.gridWidth / 2, 
+          0, 
           BasicParam.gridWidth * (BasicParam.grids + 1) * Math.sin(Math.PI / 3) + BasicParam.offsetY, 
           BasicParam.gridWidth * i / 3 + BasicParam.gridWidth / 2);
         this.dicePath[i] = JSON.parse(this.planAll[selectedPlan]);
@@ -392,7 +392,7 @@ export class GameComponent implements OnInit {
       const velocityAngular = this.diceObject[d].physicsImpostor.getAngularVelocity();
 
       if (v2d > 120) {
-        const vY = velocity.y * 0.05
+        const vY = velocity.y * 0.1
         const vX = velocity.x * 0.5
         this.diceObject[d].physicsImpostor.setLinearVelocity(new BABYLON.Vector3
           (
@@ -456,9 +456,9 @@ export class GameComponent implements OnInit {
             ));
           this.diceObject[d].physicsImpostor.setLinearVelocity(new BABYLON.Vector3
             (
-              velocity.x / 2,
+              velocity.x / 4,
               velocity.y,
-              velocity.z / 2
+              velocity.z / 4
             ));
         }
         const rqA = Math.abs(v2d) / 
@@ -495,7 +495,7 @@ export class GameComponent implements OnInit {
 
             this.diceObject[d].applyImpulse(new BABYLON.Vector3
               (
-                (k ? -1 : 1) * 1000, 
+                (k ? -1 : 1) * 7000, 
                 -100, 
                 0
               ), 
@@ -508,8 +508,8 @@ export class GameComponent implements OnInit {
             if (dAngV > 0) {
               this.diceObject[d].applyImpulse(new BABYLON.Vector3
                 (
-                  (k ? -1 : 1) * dAngV * 25000, 
-                  100,
+                  (k ? -1 : 1) * dAngV * 40000, 
+                  400,
                   0
                 ), 
                 this.diceObject[d].getAbsolutePosition()

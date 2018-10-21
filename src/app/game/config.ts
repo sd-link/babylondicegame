@@ -1,22 +1,20 @@
 export const enum BasicParam {
-  offsetY = -250,
+  offsetY = -330,
   grids = 14,
-  diceSize = 18,
-  diceMass = 1500,
+  diceSize = 22,
+  diceMass = 1000,
   diceRestitution = .6,
   diceFriction = 1,
   dicesPerScreen = 21,
-  gridWidth = 42,
-  barWidth = 6,
-  backWidth = 1500,
-  backHeight = 1000,
+  gridWidth = 48,
+  barWidth = 6.7,
+  backWidth = 1300,
+  backHeight = 767,
   delayPeriod = 2000,
   mainRestitution = 5,
   mainFriction = 1,
   eventDelay = 2000,
-  plinkoDepth = 500,
-
-
+  plinkoDepth = 700,
 }
 export const FacePostion = [
   [
