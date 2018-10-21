@@ -40,6 +40,8 @@ export class GameComponent implements OnInit {
   diceRouterInfo: any[];
   dotGlow: any[];
 
+  dices: number;
+
 
 
 
@@ -110,7 +112,7 @@ export class GameComponent implements OnInit {
     this.diceObject = [];
     this.diceIsEnable = [];
     this.diceIsReached = [];
-    for (let i = 0; i < BasicParam.dicesPerScreen; i++) {
+    for (let i = 0; i < BasicParam.dicesPerScene * 3; i++) {
       this.diceIsEnable[i] = true;
       this.diceObject[i] = BABYLON.MeshBuilder.CreateBox(`dicd${i}`, {
         size: BasicParam.diceSize,
@@ -119,7 +121,7 @@ export class GameComponent implements OnInit {
       this.diceObject[i].material = this.diceMat;
 
       this.diceObject[i].position = new BABYLON.Vector3(
-        BasicParam.diceSize * (i - BasicParam.dicesPerScreen / 2) * 1.5,
+        BasicParam.diceSize * (i - BasicParam.dicesPerScene * 3 / 2) * 1.5,
         this.tableY + BasicParam.diceSize,
         BasicParam.plinkoDepth / 2);
       this.diceObject[i].physicsImpostor = new BABYLON.PhysicsImpostor(this.diceObject[i], BABYLON.PhysicsImpostor.BoxImpostor, {
@@ -131,7 +133,7 @@ export class GameComponent implements OnInit {
 
 
     const diceTable = BABYLON.MeshBuilder.CreateBox('diceTable', {
-      width: BasicParam.gridWidth * BasicParam.dicesPerScreen * 2,
+      width: BasicParam.gridWidth * BasicParam.dicesPerScene * 3 * 2,
       depth: BasicParam.plinkoDepth
     }, scene);
     diceTable.position.y = this.tableY;
@@ -306,7 +308,7 @@ export class GameComponent implements OnInit {
 
 
         // collision event
-        for (let d = 0; d < BasicParam.dicesPerScreen; d++) {
+        for (let d = 0; d < BasicParam.dicesPerScene * 3; d++) {
           dot.actionManager.registerAction(new BABYLON.ExecuteCodeAction({
               trigger: BABYLON.ActionManager.OnIntersectionEnterTrigger,
               parameter: this.diceObject[d]
@@ -369,6 +371,7 @@ export class GameComponent implements OnInit {
   }
 
   fallDice() {
+    if (this.dices >= BasicParam.dicesPerScene) return;
     this.planAll = [];
     this.planOne = [];
     this.getAllPlan(0);
@@ -381,7 +384,7 @@ export class GameComponent implements OnInit {
 
     this.holeObject[this.plinkoService.hole].material.emissiveColor = new BABYLON.Color3(1.0, 0.0, 1.0);
 
-    for (let i = this.plinkoService.number; i < BasicParam.dicesPerScreen; i += 3) {
+    for (let i = this.plinkoService.number; i < BasicParam.dicesPerScene * 3; i += 3) {
       if (this.diceIsEnable[i]) {
         this.diceObject[i].position = new BABYLON.Vector3(
           0,
@@ -391,6 +394,7 @@ export class GameComponent implements OnInit {
         this.diceNumber[i] = this.plinkoService.number;
         this.diceIsEnable[i] = false;
         this.diceIsReached[i] = false;
+        this.dices ++;
         break;
       }
     }
@@ -417,7 +421,7 @@ export class GameComponent implements OnInit {
   updateRoute() {
 
 
-    for (let d = 0; d < BasicParam.dicesPerScreen; d++) {
+    for (let d = 0; d < BasicParam.dicesPerScene * 3; d++) {
 
       if (!this.dicePath[d]) continue;
 
@@ -447,16 +451,18 @@ export class GameComponent implements OnInit {
           setTimeout(() => {
             this.diceIsEnable[d] = true;
             this.diceObject[d].position = new BABYLON.Vector3(
-              BasicParam.diceSize * (d - BasicParam.dicesPerScreen / 2) * 1.5,
+              BasicParam.diceSize * (d - BasicParam.dicesPerScene * 3 / 2) * 1.5,
               this.tableY + BasicParam.diceSize,
               BasicParam.plinkoDepth / 2);
+              this.dices --;
           }, 2000);
           return;
 
         }
       } else if (v3d > 5 && this.diceObject[d].position.y > BasicParam.offsetY + BasicParam.diceSize) {
         // rotate
-        const rT = FacePostion[this.diceNumber[d]];
+        const diceNumber = (this.diceObject[d].position.y > 0) ? (this.diceNumber[d] + 1) % 6 : this.diceNumber[d];
+        const rT = FacePostion[diceNumber];
         let rqX, rqY, rqZ, rqW, minDis = null;
 
         for (let op = 0; op < 4; op++) {
@@ -572,7 +578,7 @@ export class GameComponent implements OnInit {
   makeRoute() {
     this.diceRouterInfo = [];
 
-    for (let l = 0; l < BasicParam.dicesPerScreen; l++) {
+    for (let l = 0; l < BasicParam.dicesPerScene * 3; l++) {
       let fk = null;
       this.diceRouterInfo[l] = [];
       if (!this.dicePath[l]) continue;
