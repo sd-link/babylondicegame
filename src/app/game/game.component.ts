@@ -73,9 +73,9 @@ export class GameComponent implements OnInit {
   }
 
   createScene() {
-
+    this.dices = 0;
     const scene = new BABYLON.Scene(this.engine);
-    const gravityVector = new BABYLON.Vector3(0, -500, 0);
+    const gravityVector = new BABYLON.Vector3(0, -550, 0);
     const physicsPlugin = new BABYLON.CannonJSPlugin();
     scene.enablePhysics(gravityVector, physicsPlugin);
     scene.collisionsEnabled = true;
@@ -419,8 +419,6 @@ export class GameComponent implements OnInit {
   }
 
   updateRoute() {
-
-
     for (let d = 0; d < BasicParam.dicesPerScene * 3; d++) {
 
       if (!this.dicePath[d]) continue;
@@ -430,8 +428,8 @@ export class GameComponent implements OnInit {
       const v2d = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
       const velocityAngular = this.diceObject[d].physicsImpostor.getAngularVelocity();
 
-      if (v2d > 120) {
-        const vY = velocity.y * 0.1
+      if (v2d > 115) {
+        const vY = velocity.y * 0.05
         const vX = velocity.x * 0.5
         this.diceObject[d].physicsImpostor.setLinearVelocity(new BABYLON.Vector3(
           vX,
@@ -546,8 +544,8 @@ export class GameComponent implements OnInit {
             const dAngV = (vAng - Math.PI / 3);
             if (dAngV > 0) {
               this.diceObject[d].applyImpulse(new BABYLON.Vector3(
-                  (k ? -1 : 1) * dAngV * 40000,
-                  400,
+                  (k ? -1 : 1) * dAngV * 45000,
+                  300,
                   0
                 ),
                 this.diceObject[d].getAbsolutePosition()

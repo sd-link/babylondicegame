@@ -28,7 +28,7 @@ export class PlinkoService {
       this.isReady = false;
       setTimeout (() => {
         this.isReady = true;
-        // this.fallDice();
+        this.fallDice();
       }, BasicParam.eventDelay);
     }
   }
